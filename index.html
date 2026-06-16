@@ -497,6 +497,21 @@ function toggleImport() {
   }
 }
 
+function extractUrlFromLine(line) {
+  // 自动识别并提取 https:// 开头的链接，忽略前面的编号、逗号等
+  var idx = line.indexOf('https://');
+  if (idx !== -1) {
+    return line.substring(idx).trim();
+  }
+  // 也支持 http://
+  idx = line.indexOf('http://');
+  if (idx !== -1) {
+    return line.substring(idx).trim();
+  }
+  // 没有 http 开头，返回原始内容
+  return line.trim();
+}
+
 function loadLinks() {
   var raw = document.getElementById('linkInput').value.trim();
   if (!raw) {
@@ -504,6 +519,8 @@ function loadLinks() {
     return;
   }
   var lines = raw.split(/[\n\r]+/).map(function(s) { return s.trim(); }).filter(Boolean);
+  // 提取每行中的真实链接
+  lines = lines.map(function(s) { return extractUrlFromLine(s); });
   var unique = [];
   for (var i = 0; i < lines.length; i++) {
     if (unique.indexOf(lines[i]) === -1) {
