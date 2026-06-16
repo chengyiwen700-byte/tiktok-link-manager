@@ -203,6 +203,29 @@
     font-size: 0.8rem;
     padding: 10px 14px;
   }
+  .btn-share {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* 复制成功提示 */
+  .copy-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: #22c55e;
+    color: #fff;
+    padding: 20px 32px;
+    border-radius: 16px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    z-index: 999;
+    pointer-events: none;
+    transition: transform 0.3s ease;
+  }
+  .copy-toast.show { transform: translate(-50%, -50%) scale(1); }
 
   /* 导入面板 */
   .import-panel {
@@ -337,7 +360,8 @@
 <div class="actions">
   <button class="btn btn-back" id="btnBack" onclick="goBack()" disabled>回退</button>
   <button class="btn btn-import" id="btnImport" onclick="toggleImport()">导入链接</button>
-  <button class="btn btn-reset" id="btnReset" onclick="resetAll()" style="display:none;">重置</button>
+  <button class="btn btn-share" id="btnShare" onclick="shareLinks()" style="display:none;">分享</button>
+<button class="btn btn-reset" id="btnReset" onclick="resetAll()" style="display:none;">重置</button>
 </div>
 
 <!-- 导入面板 -->
@@ -354,6 +378,7 @@ https://www.tiktok.com/@username3?_r=1&amp;_t=..."></textarea>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+<div class="copy-toast" id="copyToast">链接已复制</div>
 
 <script>
 // ═══════════════════════════════════════════
@@ -423,6 +448,7 @@ function render() {
   }
 
   document.getElementById('btnBack').disabled = currentIndex <= 0 || total === 0 || done >= total;
+  document.getElementById('btnShare').style.display = (total > 0) ? '' : 'none';
   document.getElementById('btnReset').style.display = (total > 0 && done > 0) ? '' : 'none';
 }
 
@@ -581,8 +607,103 @@ window.addEventListener('pagehide', function() {
 });
 
 // ═══════════════════════════════════════════
-//  初始化
+//  跨设备分享：将链接编码到 URL hash 中
 // ═══════════════════════════════════════════
+function encodeLinksForUrl(linksArr) {
+  // 用换行符拼接，base64 编码
+  var joined = linksArr.join('\n');
+  return btoa(unescape(encodeURIComponent(joined)));
+}
+
+function decodeLinksFromUrl(encoded) {
+  try {
+    var joined = decodeURIComponent(escape(atob(encoded)));
+    return joined.split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
+  } catch(e) {
+    return [];
+  }
+}
+
+function shareLinks() {
+  var encoded = encodeLinksForUrl(data.links);
+  var shareUrl = window.location.origin + window.location.pathname + '#data=' + encoded;
+
+  // 尝试复制到剪贴板
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(shareUrl).then(function() {
+      showCopyToast('链接已复制！发送给手机');
+    }).catch(function() {
+      showCopyToast('请手动复制浏览器地址栏');
+      promptCopy(shareUrl);
+    });
+  } else {
+    promptCopy(shareUrl);
+  }
+}
+
+function promptCopy(url) {
+  // 回退方案：用 prompt 展示链接让用户复制
+  var el = document.createElement('textarea');
+  el.value = url;
+  el.style.position = 'fixed';
+  el.style.left = '-9999px';
+  document.body.appendChild(el);
+  el.select();
+  try {
+    document.execCommand('copy');
+    showCopyToast('链接已复制！发送给手机');
+  } catch(e) {
+    showCopyToast('复制失败，请查看地址栏');
+  }
+  document.body.removeChild(el);
+}
+
+function showCopyToast(msg) {
+  var ct = document.getElementById('copyToast');
+  ct.textContent = msg;
+  ct.classList.add('show');
+  setTimeout(function() { ct.classList.remove('show'); }, 2500);
+}
+
+// ═══════════════════════════════════════════
+//  初始化（含 hash 自动加载）
+// ═══════════════════════════════════════════
+(function() {
+  // 检查 URL hash 中是否有编码的链接数据
+  var hash = window.location.hash;
+  if (hash && hash.indexOf('#data=') === 0) {
+    var encoded = hash.substring(6); // 去掉 '#data='
+    var importedLinks = decodeLinksFromUrl(encoded);
+    if (importedLinks.length > 0) {
+      // 合并：保留已有的完成记录
+      var oldDoneUrls = data.doneIndices.map(function(i) { return data.links[i]; });
+      var newDoneIndices = [];
+      for (var u = 0; u < importedLinks.length; u++) {
+        if (oldDoneUrls.indexOf(importedLinks[u]) !== -1) {
+          newDoneIndices.push(u);
+        }
+      }
+      data.links = importedLinks;
+      data.currentIndex = 0;
+      data.doneIndices = newDoneIndices;
+      if (newDoneIndices.indexOf(0) !== -1) {
+        for (var k = 0; k < importedLinks.length; k++) {
+          if (newDoneIndices.indexOf(k) === -1) {
+            data.currentIndex = k;
+            break;
+          }
+        }
+      }
+      saveData(data);
+      showToast('已从分享链接加载 ' + importedLinks.length + ' 个链接');
+
+      // 清除 hash，让 URL 干净
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }
+})();
 render();
 </script>
 
