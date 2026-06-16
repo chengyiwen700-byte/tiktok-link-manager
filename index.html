@@ -208,6 +208,14 @@
     color: #fff;
     font-weight: 700;
   }
+  .btn-clear {
+    background: transparent;
+    color: #ff6b6b;
+    border: 1px solid #ff6b6b;
+    font-size: 0.8rem;
+    padding: 10px 14px;
+    flex: 0.5;
+  }
 
   /* 复制成功提示 */
   .copy-toast {
@@ -361,6 +369,7 @@
   <button class="btn btn-back" id="btnBack" onclick="goBack()" disabled>回退</button>
   <button class="btn btn-import" id="btnImport" onclick="toggleImport()">导入链接</button>
   <button class="btn btn-share" id="btnShare" onclick="shareLinks()" style="display:none;">分享</button>
+<button class="btn btn-clear" id="btnClear" onclick="clearAll()" style="display:none;">清空</button>
 <button class="btn btn-reset" id="btnReset" onclick="resetAll()" style="display:none;">重置</button>
 </div>
 
@@ -449,6 +458,7 @@ function render() {
 
   document.getElementById('btnBack').disabled = currentIndex <= 0 || total === 0 || done >= total;
   document.getElementById('btnShare').style.display = (total > 0) ? '' : 'none';
+  document.getElementById('btnClear').style.display = (total > 0) ? '' : 'none';
   document.getElementById('btnReset').style.display = (total > 0 && done > 0) ? '' : 'none';
 }
 
@@ -542,6 +552,16 @@ function resetAll() {
   saveData(data);
   render();
   showToast('已重置，从头开始');
+}
+
+function clearAll() {
+  if (!confirm('确定要清空所有链接吗？链接列表和进度将全部删除。')) return;
+  data.links = [];
+  data.doneIndices = [];
+  data.currentIndex = 0;
+  saveData(data);
+  render();
+  showToast('已清空全部链接');
 }
 
 // ═══════════════════════════════════════════
