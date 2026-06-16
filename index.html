@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TikTok 主播链接管理器</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --card: #1a1a1a;
+    --primary: #fe2c55;
+    --primary-hover: #e8254c;
+    --text: #ffffff;
+    --text-secondary: #aaaaaa;
+    --border: #2a2a2a;
+    --success: #22c55e;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(254, 44, 85, 0.25);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 8px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #fe2c55, #ff6b81);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header .subtitle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* 进度条 */
+  .progress-wrap {
+    width: 100%;
+    max-width: 480px;
+    margin-bottom: 12px;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+  .progress-info .count {
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .progress-info .done-count {
+    color: var(--success);
+    font-weight: 600;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #ff6b81);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  /* 主链接大按钮 */
+  .main-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius);
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+  }
+  .main-card:active {
+    transform: scale(0.97);
+    background: #1f0f14;
+  }
+  .main-card .avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fe2c55, #ff6b81);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+  .main-card .username {
+    font-size: 1.5rem;
+    font-weight: 700;
+    word-break: break-all;
+  }
+  .main-card .hint {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .main-card .full-url {
+    font-size: 0.7rem;
+    color: #555;
+    word-break: break-all;
+    max-width: 100%;
+    margin-top: 4px;
+  }
+
+  .main-card.done-all {
+    border-color: var(--success);
+    box-shadow: 0 4px 24px rgba(34, 197, 94, 0.25);
+    cursor: default;
+  }
+  .main-card.done-all:active { transform: none; background: var(--card); }
+
+  /* a 标签链接 - 用于触发 iOS 通用链接唤起 TikTok App */
+  .main-card a.main-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
+    -webkit-touch-callout: default;
+  }
+
+  /* 操作按钮行 */
+  .actions {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-back {
+    background: var(--border);
+    color: var(--text);
+  }
+  .btn-back:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .btn-import {
+    background: var(--border);
+    color: var(--text);
+  }
+  .btn-reset {
+    background: transparent;
+    color: #ff6b6b;
+    border: 1px solid #ff6b6b;
+    font-size: 0.8rem;
+    padding: 10px 14px;
+  }
+
+  /* 导入面板 */
+  .import-panel {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 16px;
+    display: none;
+  }
+  .import-panel.show { display: block; }
+
+  .import-panel label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+  }
+  .import-panel textarea {
+    width: 100%;
+    height: 160px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 12px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    resize: vertical;
+    outline: none;
+  }
+  .import-panel textarea:focus {
+    border-color: var(--primary);
+  }
+  .import-panel .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .btn-load {
+    flex: 1;
+    background: var(--primary);
+    color: #fff;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-load:active { background: var(--primary-hover); }
+  .btn-cancel {
+    flex: 1;
+    background: var(--border);
+    color: var(--text);
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120px);
+    background: #333;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 60px 20px;
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+  .empty-state p { font-size: 0.95rem; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>TikTok 主播链接</h1>
+  <p class="subtitle">点击大按钮 → 跳转主播主页 → 自动切换下一个</p>
+</div>
+
+<!-- 进度条 -->
+<div class="progress-wrap">
+  <div class="progress-info">
+    <span>当前：<span class="count" id="currentNum">0</span> / <span id="totalNum">0</span></span>
+    <span>已完成：<span class="done-count" id="doneCount">0</span></span>
+  </div>
+  <div class="progress-bar">
+    <div class="fill" id="progressFill" style="width: 0%"></div>
+  </div>
+</div>
+
+<!-- 主链接大按钮 -->
+<div class="main-card" id="mainCard">
+  <div class="empty-state" id="emptyState">
+    <div class="icon"></div>
+    <p>还没有链接<br>点击下方「导入链接」添加主播链接</p>
+  </div>
+  <a id="linkContent" href="#" style="display:none; flex-direction:column; align-items:center; gap:12px; width:100%; text-decoration:none; color:inherit;">
+    <div class="avatar"></div>
+    <div class="username" id="displayName"></div>
+    <div class="full-url" id="displayUrl"></div>
+    <div class="hint">点击此处跳转 TikTok</div>
+  </a>
+  <div id="doneAllContent" style="display:none; flex-direction:column; align-items:center; gap:12px; width:100%;">
+    <div class="avatar" style="background: linear-gradient(135deg, #22c55e, #4ade80);"></div>
+    <div class="username" style="color: #22c55e;">全部完成！</div>
+    <div class="hint">所有主播链接已处理完毕</div>
+  </div>
+</div>
+
+<!-- 操作按钮 -->
+<div class="actions">
+  <button class="btn btn-back" id="btnBack" onclick="goBack()" disabled>回退</button>
+  <button class="btn btn-import" id="btnImport" onclick="toggleImport()">导入链接</button>
+  <button class="btn btn-reset" id="btnReset" onclick="resetAll()" style="display:none;">重置</button>
+</div>
+
+<!-- 导入面板 -->
+<div class="import-panel" id="importPanel">
+  <label>粘贴主播链接（每行一个）：</label>
+  <textarea id="linkInput" placeholder="https://www.tiktok.com/@username1?_r=1&amp;_t=...
+https://www.tiktok.com/@username2?_r=1&amp;_t=...
+https://www.tiktok.com/@username3?_r=1&amp;_t=..."></textarea>
+  <div class="btn-row">
+    <button class="btn-load" onclick="loadLinks()">加载链接</button>
+    <button class="btn-cancel" onclick="toggleImport()">取消</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  数据管理
+// ═══════════════════════════════════════════
+var STORAGE_KEY = 'tiktok_link_manager';
+
+function getData() {
+  var raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return { links: [], currentIndex: 0, doneIndices: [] };
+  try {
+    return JSON.parse(raw);
+  } catch(e) {
+    return { links: [], currentIndex: 0, doneIndices: [] };
+  }
+}
+
+function saveData(d) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+}
+
+function extractUsername(url) {
+  var match = url.match(/tiktok\.com\/(@[\w.]+)/i);
+  return match ? match[1] : url.substring(0, 50) + '...';
+}
+
+// ═══════════════════════════════════════════
+//  UI 渲染
+// ═══════════════════════════════════════════
+var data = getData();
+
+function render() {
+  var links = data.links;
+  var currentIndex = data.currentIndex;
+  var doneIndices = data.doneIndices;
+  var total = links.length;
+  var done = doneIndices.length;
+
+  document.getElementById('currentNum').textContent = total > 0 ? currentIndex + 1 : 0;
+  document.getElementById('totalNum').textContent = total;
+  document.getElementById('doneCount').textContent = done;
+  var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  var emptyState = document.getElementById('emptyState');
+  var linkContent = document.getElementById('linkContent');
+  var doneAllContent = document.getElementById('doneAllContent');
+  var mainCard = document.getElementById('mainCard');
+
+  emptyState.style.display = 'none';
+  linkContent.style.display = 'none';
+  doneAllContent.style.display = 'none';
+  mainCard.classList.remove('done-all');
+
+  if (total === 0) {
+    emptyState.style.display = 'block';
+  } else if (done >= total) {
+    doneAllContent.style.display = 'flex';
+    mainCard.classList.add('done-all');
+  } else {
+    var url = links[currentIndex];
+    var username = extractUsername(url);
+    linkContent.style.display = 'flex';
+    linkContent.setAttribute('href', url);
+    document.getElementById('displayName').textContent = username;
+    document.getElementById('displayUrl').textContent = url;
+  }
+
+  document.getElementById('btnBack').disabled = currentIndex <= 0 || total === 0 || done >= total;
+  document.getElementById('btnReset').style.display = (total > 0 && done > 0) ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════
+//  核心操作
+// ═══════════════════════════════════════════
+function handleMainClick(e) {
+  // 此函数已废弃，改为监听页面隐藏事件
+  // 保留空函数防止旧代码报错
+}
+
+function goBack() {
+  var links = data.links;
+  var currentIndex = data.currentIndex;
+  var doneIndices = data.doneIndices;
+
+  if (currentIndex <= 0 || links.length === 0) return;
+
+  var prevIndex = currentIndex - 1;
+  var prevPos = doneIndices.indexOf(prevIndex);
+  if (prevPos !== -1) {
+    doneIndices.splice(prevPos, 1);
+  }
+  data.currentIndex = prevIndex;
+  saveData(data);
+  render();
+  showToast('已回退到上一个');
+}
+
+function toggleImport() {
+  var panel = document.getElementById('importPanel');
+  panel.classList.toggle('show');
+  if (panel.classList.contains('show')) {
+    document.getElementById('linkInput').value = data.links.join('\n');
+    document.getElementById('linkInput').focus();
+  }
+}
+
+function loadLinks() {
+  var raw = document.getElementById('linkInput').value.trim();
+  if (!raw) {
+    showToast('请粘贴至少一个链接');
+    return;
+  }
+  var lines = raw.split(/[\n\r]+/).map(function(s) { return s.trim(); }).filter(Boolean);
+  var unique = [];
+  for (var i = 0; i < lines.length; i++) {
+    if (unique.indexOf(lines[i]) === -1) {
+      unique.push(lines[i]);
+    }
+  }
+
+  if (unique.length === 0) {
+    showToast('未识别到有效链接');
+    return;
+  }
+
+  // 保留已完成链接状态
+  var oldDoneUrls = data.doneIndices.map(function(i) { return data.links[i]; });
+  var newDoneIndices = [];
+  for (var u = 0; u < unique.length; u++) {
+    if (oldDoneUrls.indexOf(unique[u]) !== -1) {
+      newDoneIndices.push(u);
+    }
+  }
+
+  data.links = unique;
+  data.currentIndex = 0;
+  data.doneIndices = newDoneIndices;
+
+  // 跳到第一个未完成的
+  if (newDoneIndices.indexOf(0) !== -1) {
+    for (var k = 0; k < unique.length; k++) {
+      if (newDoneIndices.indexOf(k) === -1) {
+        data.currentIndex = k;
+        break;
+      }
+    }
+  }
+
+  saveData(data);
+  document.getElementById('importPanel').classList.remove('show');
+  render();
+  showToast('已加载 ' + unique.length + ' 个链接');
+}
+
+function resetAll() {
+  if (!confirm('确定要重置所有进度吗？已完成记录将被清除。')) return;
+  data.doneIndices = [];
+  data.currentIndex = 0;
+  saveData(data);
+  render();
+  showToast('已重置，从头开始');
+}
+
+// ═══════════════════════════════════════════
+//  Toast
+// ═══════════════════════════════════════════
+var toastTimer;
+function showToast(msg) {
+  var toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 2000);
+}
+
+// ═══════════════════════════════════════════
+//  页面隐藏时自动标记完成（零 JS 干扰点击）
+//  iOS Universal Links 需要真实的 <a> 点击
+//  我们在用户离开页面时标记完成，不干扰点击行为
+// ═══════════════════════════════════════════
+function markCurrentDoneAndAdvance() {
+  var links = data.links;
+  var currentIndex = data.currentIndex;
+  var doneIndices = data.doneIndices;
+  var total = links.length;
+
+  if (total === 0) return;
+  if (doneIndices.length >= total) return;
+
+  // 标记当前为已完成
+  if (doneIndices.indexOf(currentIndex) === -1) {
+    doneIndices.push(currentIndex);
+  }
+
+  // 找下一个未完成的
+  var nextIndex = -1;
+  for (var i = currentIndex + 1; i < total; i++) {
+    if (doneIndices.indexOf(i) === -1) { nextIndex = i; break; }
+  }
+  if (nextIndex === -1) {
+    for (var j = 0; j < currentIndex; j++) {
+      if (doneIndices.indexOf(j) === -1) { nextIndex = j; break; }
+    }
+  }
+
+  if (nextIndex !== -1) {
+    data.currentIndex = nextIndex;
+  }
+
+  saveData(data);
+  render();
+}
+
+// 监听页面隐藏（切到 TikTok App 或离开浏览器）
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    markCurrentDoneAndAdvance();
+  }
+});
+
+// 监听页面卸载（导航到 TikTok 网页版的情况）
+window.addEventListener('pagehide', function() {
+  markCurrentDoneAndAdvance();
+});
+
+// ═══════════════════════════════════════════
+//  初始化
+// ═══════════════════════════════════════════
+render();
+</script>
+
+</body>
+</html>
